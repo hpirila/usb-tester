@@ -8,6 +8,7 @@
     --box-margin: 10px auto;
 
 }
+
 * {
     box-sizing: border-box;
 }
@@ -75,8 +76,7 @@ h1 {
     flex: 0 0 300px;
     text-align: center;
   }
-  
-  
+
   ol {
     padding-left: 20px;
     line-height: 1.6;
@@ -129,10 +129,6 @@ h1 {
 .remove-btn:hover {
     color: #1e293b;
 }
-
-
-
-
 
 .controls {
     display: flex;
@@ -288,7 +284,7 @@ canvas {
 
 .csv-data {
     background-color: var(--box-background-color);
-    padding: var(--box-padding);
+    padding: 16px 16px 45px 16px;
     border-radius: var(--box-border-radius);
     width: var(--box-width);
     max-width: var(--box-max-width);
