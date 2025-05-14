@@ -6,7 +6,7 @@ A web-based dashboard for monitoring USB power metrics in real-time via Bluetoot
 ![USB Tester Dashboard Preview](images/image.jpg)  
 
 ## Buy Device
-[Aliexpress](https://s.click.aliexpress.com/e/_oF8CCmf)  
+[Aliexpress](https://s.click.aliexpress.com/e/_onhQemn)
 
 
 ## Features
