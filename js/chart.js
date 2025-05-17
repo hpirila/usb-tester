@@ -126,7 +126,7 @@ function saveChart(chartId) {
 function updateChartScales(chartId) {
   const multiChart = charts[chartId];
   if (!multiChart) return;
-    const checkedKeys = Object.keys(checkboxes).filter(key => document.getElementById(`${chartId}-${key}`).checked);
+  const checkedKeys = Object.keys(checkboxes).filter(key => document.getElementById(`${chartId}-${key}`).checked);
 
   const positions = {};
   if (checkedKeys.length === 2) {
@@ -153,6 +153,19 @@ function getChartFilename(chartId) {
   return checkedLabels.length > 0 ? `${checkedLabels.join('')}.png` : 'Chart.png';
 }
 
+function getAdaptiveStepSize(range) {
+  const targetTickCount = 8;
+  const rawStep = range / targetTickCount;
+  const power = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step = power * (
+    rawStep / power >= 5 ? 5 :
+      rawStep / power >= 2 ? 2 :
+        1
+  );
+
+  return Math.max(step, 1);
+}
+
 function initializeChart(chartId, enabledDatasetIdx = null) {
   const canvas = document.getElementById(chartId);
   if (!canvas) {
@@ -173,12 +186,38 @@ function initializeChart(chartId, enabledDatasetIdx = null) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
+
         x: {
           type: 'linear',
           title: { display: true, text: 'Time (s)' },
           ticks: {
-            stepSize: 1,
+            callback: function (value) {
+              return Number.isInteger(value) ? value : '';
+            },
+            stepSize: function (context) {
+              const chart = context.chart;
+              const range = chart.scales.x.max - chart.scales.x.min;
+              return getAdaptiveStepSize(range);
+            },
             precision: 0
+          },
+          afterBuildTicks: function (axis) {
+            const range = axis.max - axis.min;
+            const step = getAdaptiveStepSize(range);
+            const ticks = [];
+            const firstTick = Math.ceil(axis.min / step) * step;
+            for (let i = firstTick; i <= axis.max; i += step) {
+              ticks.push({ value: i });
+            }
+            if (ticks.length > 0 && ticks[ticks.length - 1].value < axis.max) {
+              ticks.push({ value: axis.max });
+            }
+
+            axis.ticks = ticks;
+            return ticks;
+          },
+          grid: {
+            drawOnChartArea: true
           }
         },
         y0: {
@@ -275,31 +314,50 @@ function initializeChart(chartId, enabledDatasetIdx = null) {
   });
 
   const filenameInput = document.querySelector(`#${chartId}-wrapper .chart-filename`);
-  filenameInput.value = getChartFilename(chartId);
+  if (filenameInput) {
+    filenameInput.value = getChartFilename(chartId);
+  }
 
   updateChartScales(chartId);
 
   document.querySelectorAll(`#${chartId}-wrapper .checkboxes input[type="checkbox"]`).forEach(cb => {
     cb.addEventListener('change', () => {
       updateChartScales(chartId);
-      filenameInput.value = getChartFilename(chartId);
+      if (filenameInput) {
+        filenameInput.value = getChartFilename(chartId);
+      }
     });
   });
-  document.querySelector(`#${chartId}-wrapper .save-chart-btn`).addEventListener('click', () => saveChart(chartId));
-  document.querySelector(`#${chartId}-wrapper .expand-btn`).addEventListener('click', () => {
-    document.getElementById(`${chartId}-wrapper`).classList.add('expanded');
-    charts[chartId].resize();
-  });
-  document.querySelector(`#${chartId}-wrapper .collapse-btn`).addEventListener('click', () => {
-    document.getElementById(`${chartId}-wrapper`).classList.remove('expanded');
-    charts[chartId].resize();
-  });
+
+  const saveBtn = document.querySelector(`#${chartId}-wrapper .save-chart-btn`);
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => saveChart(chartId));
+  }
+
+  const expandBtn = document.querySelector(`#${chartId}-wrapper .expand-btn`);
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      document.getElementById(`${chartId}-wrapper`).classList.add('expanded');
+      charts[chartId].resize();
+    });
+  }
+
+  const collapseBtn = document.querySelector(`#${chartId}-wrapper .collapse-btn`);
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      document.getElementById(`${chartId}-wrapper`).classList.remove('expanded');
+      charts[chartId].resize();
+    });
+  }
+
   const removeBtn = document.querySelector(`#${chartId}-wrapper .remove-btn`);
-  removeBtn.addEventListener('click', () => {
-    document.getElementById(`${chartId}-wrapper`).remove();
-    charts[chartId].destroy();
-    delete charts[chartId];
-  });
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => {
+      document.getElementById(`${chartId}-wrapper`).remove();
+      charts[chartId].destroy();
+      delete charts[chartId];
+    });
+  }
 }
 
 function createChart(index, enabledDatasetIdx) {
@@ -364,7 +422,9 @@ function createChart(index, enabledDatasetIdx) {
   wrapper.appendChild(controls);
 
   const graphGrid = document.querySelector('.graph-grid');
-  graphGrid.appendChild(wrapper);
+  if (graphGrid) {
+    graphGrid.appendChild(wrapper);
+  }
 
   initializeChart(chartId, enabledDatasetIdx);
 }
@@ -373,9 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeChart('chart-0');
   initializeChart('chart-1', 0);
 
-  document.getElementById('addChartBtn').addEventListener('click', () => {
-    createChart(chartCount, nextDatasetIdx);
-    chartCount++;
-    nextDatasetIdx = (nextDatasetIdx + 1) % 7;
-  });
+  const addChartBtn = document.getElementById('addChartBtn');
+  if (addChartBtn) {
+    addChartBtn.addEventListener('click', () => {
+      createChart(chartCount, nextDatasetIdx);
+      chartCount++;
+      nextDatasetIdx = (nextDatasetIdx + 1) % 7;
+    });
+  }
 });
